@@ -1,3 +1,43 @@
+"""Losse matching-logica: zet een vrij ingetypt antwoord om naar een plek (0-9) in de top-10, of None."""
+
+import re
+import unicodedata
+from difflib import SequenceMatcher
+
+MATCH_THRESHOLD = 0.6
+
+
+def normalize(text):
+    text = text.lower().strip()
+    text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
+    text = re.sub(r"[^a-z0-9 ]", " ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
+def match_guess(guess, answers):
+    """Geeft de 0-based index in `answers` terug die het beste bij `guess` past, of None."""
+    normalized_guess = normalize(guess)
+    if not normalized_guess:
+        return None
+
+    best_index = None
+    best_score = 0.0
+
+    for index, answer in enumerate(answers):
+        normalized_answer = normalize(answer)
+        score = SequenceMatcher(None, normalized_guess, normalized_answer).ratio()
+
+        if normalized_guess in normalized_answer or normalized_answer in normalized_guess:
+            score = max(score, 0.85)
+
+        if score > best_score:
+            best_score = score
+            best_index = index
+
+    if best_score >= MATCH_THRESHOLD:
+        return best_index
+    return None
 import random
 
 import streamlit as st
