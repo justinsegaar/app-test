@@ -1,8 +1,105 @@
-"""Losse matching-logica: zet een vrij ingetypt antwoord om naar een plek (0-9) in de top-10, of None."""
-
+import random
 import re
 import unicodedata
 from difflib import SequenceMatcher
+
+import streamlit as st
+
+# ---------------------------------------------------------------------------
+# Vragen
+# ---------------------------------------------------------------------------
+# Voeg gerust je eigen categorieen toe door dezelfde structuur te volgen:
+# {"category": "Jouw top-10 vraag", "answers": ["plek 1", ..., "plek 10"]},
+#
+# Let op bij de voetbaltransfers-vraag: transferbedragen en volgorde
+# veranderen regelmatig. Check de cijfers voordat je hiermee om serieuze
+# punten speelt, en pas ze aan indien nodig.
+
+QUESTIONS = [
+    {
+        "category": "Grootste landen ter wereld (oppervlakte)",
+        "answers": [
+            "Rusland", "Canada", "Verenigde Staten", "China", "Brazilie",
+            "Australie", "India", "Argentinie", "Kazachstan", "Algerije",
+        ],
+    },
+    {
+        "category": "Landen met de meeste inwoners",
+        "answers": [
+            "India", "China", "Verenigde Staten", "Indonesie", "Pakistan",
+            "Nigeria", "Brazilie", "Bangladesh", "Rusland", "Mexico",
+        ],
+    },
+    {
+        "category": "Hoogste bergen ter wereld",
+        "answers": [
+            "Mount Everest", "K2", "Kangchenjunga", "Lhotse", "Makalu",
+            "Cho Oyu", "Dhaulagiri", "Manaslu", "Nanga Parbat", "Annapurna",
+        ],
+    },
+    {
+        "category": "Langste rivieren ter wereld",
+        "answers": [
+            "Nijl", "Amazone", "Yangtze", "Mississippi-Missouri", "Jenisej",
+            "Gele Rivier", "Ob", "Rio de la Plata-Parana", "Congo", "Amur",
+        ],
+    },
+    {
+        "category": "Grootste eilanden ter wereld (Australie niet meegerekend)",
+        "answers": [
+            "Groenland", "Nieuw-Guinea", "Borneo", "Madagaskar", "Baffineiland",
+            "Sumatra", "Honshu", "Groot-Brittannie", "Victoria-eiland", "Ellesmere-eiland",
+        ],
+    },
+    {
+        "category": "Grootste economieen ter wereld (nominaal bbp)",
+        "answers": [
+            "Verenigde Staten", "China", "Duitsland", "Japan", "India",
+            "Verenigd Koninkrijk", "Frankrijk", "Italie", "Canada", "Brazilie",
+        ],
+    },
+    {
+        "category": "Grootste woestijnen ter wereld",
+        "answers": [
+            "Antarctische woestijn", "Arctische woestijn", "Sahara", "Arabische woestijn",
+            "Gobi-woestijn", "Kalahari-woestijn", "Patagonische woestijn",
+            "Great Victoria-woestijn", "Syrische woestijn", "Groot Basin-woestijn",
+        ],
+    },
+    {
+        "category": "Meest gesproken talen ter wereld (moedertaal + tweede taal)",
+        "answers": [
+            "Engels", "Mandarijn Chinees", "Hindi", "Spaans", "Frans",
+            "Arabisch", "Bengaals", "Portugees", "Russisch", "Urdu",
+        ],
+    },
+    {
+        "category": "Grootste meren ter wereld (oppervlakte)",
+        "answers": [
+            "Kaspische Zee", "Lake Superior", "Victoriameer", "Huronmeer", "Michiganmeer",
+            "Tanganyikameer", "Baikalmeer", "Groot Berenmeer", "Malawimeer", "Groot Slavenmeer",
+        ],
+    },
+    {
+        "category": "Duurste uitgaande voetbaltransfers aller tijden (check/update de bedragen zelf)",
+        "answers": [
+            "Neymar (Barcelona naar Paris Saint-Germain)",
+            "Kylian Mbappe (AS Monaco naar Paris Saint-Germain)",
+            "Philippe Coutinho (Liverpool naar Barcelona)",
+            "Joao Felix (Benfica naar Atletico Madrid)",
+            "Enzo Fernandez (Benfica naar Chelsea)",
+            "Antoine Griezmann (Atletico Madrid naar Barcelona)",
+            "Jack Grealish (Aston Villa naar Manchester City)",
+            "Declan Rice (West Ham naar Arsenal)",
+            "Moises Caicedo (Brighton naar Chelsea)",
+            "Romelu Lukaku (Everton naar Manchester United)",
+        ],
+    },
+]
+
+# ---------------------------------------------------------------------------
+# Matching-logica
+# ---------------------------------------------------------------------------
 
 MATCH_THRESHOLD = 0.6
 
@@ -16,7 +113,6 @@ def normalize(text):
 
 
 def match_guess(guess, answers):
-    """Geeft de 0-based index in `answers` terug die het beste bij `guess` past, of None."""
     normalized_guess = normalize(guess)
     if not normalized_guess:
         return None
@@ -38,12 +134,11 @@ def match_guess(guess, answers):
     if best_score >= MATCH_THRESHOLD:
         return best_index
     return None
-import random
 
-import streamlit as st
 
-from matching import match_guess
-from questions import QUESTIONS
+# ---------------------------------------------------------------------------
+# App
+# ---------------------------------------------------------------------------
 
 st.set_page_config(page_title="Top 10 Quiz", page_icon="🔟", layout="centered")
 
